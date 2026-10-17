@@ -69,4 +69,4 @@ The launchd job runs outside the sandbox and does not need Claude running.
 - `0 targets` while the list clearly shows gray flames → Douyin changed its DOM; update `config.json` selectors.
 - `not authorized to send Apple events` / `-1743` → grant Automation access to `osascript` or the launcher in System Settings → Privacy & Security → Automation.
 - Not logged in → open Douyin in Chrome and log in; the skill never handles credentials.
-- Mac asleep → launchd coalesces missed intervals and fires once on wake; if the first attempt fails, a later 10-min tick retries (1 h cooldown between failed attempts).
+- Mac asleep → launchd coalesces missed intervals and fires once on wake. A scheduled run claims the Beijing day before it starts, so a failed attempt is not retried until the next day; use `--run` to force another attempt.

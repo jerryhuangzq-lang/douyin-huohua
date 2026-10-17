@@ -112,6 +112,14 @@ function saveState(state) {
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2) + "\n");
 }
 
+// Strict once per Beijing day: the slot is claimed before the run starts, so a
+// failed attempt does not earn a retry later that day.
+function takeScheduledSlot(state) {
+  if (state.done) return false;
+  state.done = true;
+  return true;
+}
+
 async function waitFor(js, ok, timeoutMs, intervalMs) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -358,7 +366,10 @@ function selfTest() {
   if (isSent(st, "Yuy")) throw new Error("self-test failed: prefix collision");
   if (dayKey(new Date("2026-10-17T15:59:00Z")) !== "2026-10-17") throw new Error("self-test failed: Beijing day boundary (before midnight)");
   if (dayKey(new Date("2026-10-17T16:00:00Z")) !== "2026-10-18") throw new Error("self-test failed: Beijing day boundary (midnight)");
-  console.log(`self-test passed (${cases.length} classification + 4 state + 2 day-key cases)`);
+  const slot = {};
+  if (!takeScheduledSlot(slot) || slot.done !== true) throw new Error("self-test failed: first scheduled run not allowed");
+  if (takeScheduledSlot(slot)) throw new Error("self-test failed: second scheduled run allowed");
+  console.log(`self-test passed (${cases.length} classification + 4 state + 2 day-key + 2 scheduled-slot cases)`);
 }
 
 async function main() {
@@ -422,11 +433,11 @@ async function main() {
   const state = loadState();
   activeState = state;
 
-  // launchd fires this every 10 min (and on wake); do real work at most once a day.
-  // Routine skips stay out of the log: 144 silent ticks a day would drown the results.
+  // launchd fires this every 10 min (and on wake); a scheduled run claims the
+  // day up front, so success or failure, later ticks are no-ops.
   if (hasRun && !dryRun && args.includes("--scheduled")) {
-    if (state.done) return;
-    if (state.failedAt && Date.now() - Date.parse(state.failedAt) < 60 * 60 * 1000) return;
+    if (!takeScheduledSlot(state)) return;
+    saveState(state);
   }
   activeRun = !dryRun;
 
