@@ -35,6 +35,9 @@ node scripts/huohua.js --run --only "是啊R^ose"
 # Recover from a false-negative verification: mark this run's failures as sent
 node scripts/huohua.js --mark-failed
 
+# Mark given chats as already sent today (so they are skipped), without sending
+node scripts/huohua.js --mark-sent "好友名" "另一个好友"
+
 # Install / remove the daily 12:37 launchd job
 # launchd label defaults to com.<user>.douyin-huohua; override with HUOHUA_LABEL=...
 bash scripts/install.sh

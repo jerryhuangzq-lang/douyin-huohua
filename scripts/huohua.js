@@ -357,7 +357,7 @@ async function main() {
   const dryRun = args.includes("--dry-run");
   const hasRun = args.includes("--run");
   if (!dryRun && !hasRun) {
-    console.log("usage: huohua.js --dry-run | --run | --self-test | --version | --mark-sent NAME... [--only NAME]");
+    console.log("usage: huohua.js --dry-run | --run | --self-test | --version | --mark-sent NAME... | --mark-failed [--only NAME]");
     process.exitCode = 64;
     return;
   }

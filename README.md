@@ -31,6 +31,9 @@ node scripts/huohua.js --self-test   # 纯逻辑自检，不碰 Chrome
 node scripts/huohua.js --dry-run     # 只列出目标，不发送
 node scripts/huohua.js --run         # 发送
 node scripts/huohua.js --run --only "好友名"
+node scripts/huohua.js --mark-sent "好友名"   # 把指定会话标记为今天已发送（不发送，用于跳过）
+node scripts/huohua.js --mark-failed          # 把本次运行里验证失败的会话标记为已发送
+node scripts/huohua.js --version
 ```
 
 首次使用请先 `--dry-run`。
