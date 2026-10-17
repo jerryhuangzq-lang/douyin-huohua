@@ -58,8 +58,8 @@ The launchd job runs outside the sandbox and does not need Claude running.
 3. Scroll the whole conversation list (it is virtualised; only ~12 rows are mounted at a time) and classify every chat by flame icon and `重燃中` text.
 4. Focus the editor, open the emoji panel (`.messageMsgInputiconAction`), and click the sticker image (`.emojiEmojiItemimgBox`) whose description is `续火花`. Clicking the outer item does nothing; never use Enter to send.
 5. Success = the sticker image click returned without error. Do not verify by flame color or message count: the flame stays gray until the other side replies, and the virtualised message list lags behind. A click counts as sent.
-6. Done chats are recorded in `state/last-run.json` keyed by date, so re-running the same day sends nothing twice.
-7. Results go to `state/huohua.log` and a macOS notification; exit 1 if any chat failed, 2 on Chrome/login failure.
+6. Done chats are recorded in `~/.douyin-huohua/last-run.json` keyed by date, so re-running the same day sends nothing twice.
+7. Results go to `~/.douyin-huohua/huohua.log` and a macOS notification; exit 1 if any chat failed, 2 on Chrome/login failure.
 
 ## Troubleshooting
 

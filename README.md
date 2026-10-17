@@ -49,4 +49,4 @@ HUOHUA_LABEL=com.example.douyin-huohua bash scripts/install.sh
 HUOHUA_LABEL=com.example.douyin-huohua bash scripts/install.sh --uninstall
 ```
 
-`state/`（运行记录与日志）保存在本地，已被 `.gitignore` 忽略。
+运行记录与日志保存在 `~/.douyin-huohua/`（可用环境变量 `HUOHUA_HOME` 改位置；定时任务安装时会把该值写入 plist，手动运行与定时任务共用同一目录）。旧版放在包目录 `state/` 里的记录会在首次运行时一次性复制过来，之后只读新位置，旧文件不会被改动。

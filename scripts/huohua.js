@@ -8,10 +8,28 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 const CFG = JSON.parse(fs.readFileSync(path.join(ROOT, "config.json"), "utf8"));
 const S = CFG.selectors;
-const STATE_DIR = path.join(ROOT, "state");
+// State lives outside the package so it survives npm/brew upgrades and read-only installs.
+const STATE_DIR = path.resolve(process.env.HUOHUA_HOME || path.join(require("os").homedir(), ".douyin-huohua"));
+const LEGACY_STATE_DIR = path.join(ROOT, "state");
 const STATE_FILE = path.join(STATE_DIR, "last-run.json");
 const LOG_FILE = path.join(STATE_DIR, "huohua.log");
 const AS_SCRIPT = path.join(__dirname, "chrome-js.applescript");
+
+// One-time copy of the pre-0.2 in-package state; afterwards only STATE_DIR is used.
+function migrateLegacyState() {
+  try {
+    if (path.resolve(LEGACY_STATE_DIR) === STATE_DIR) return;
+    if (fs.existsSync(STATE_FILE) || !fs.existsSync(path.join(LEGACY_STATE_DIR, "last-run.json"))) return;
+    fs.mkdirSync(STATE_DIR, { recursive: true });
+    for (const name of ["last-run.json", "huohua.log"]) {
+      const src = path.join(LEGACY_STATE_DIR, name);
+      if (fs.existsSync(src)) fs.copyFileSync(src, path.join(STATE_DIR, name));
+    }
+    log(`migrated state from ${LEGACY_STATE_DIR}`);
+  } catch (_) {
+    // Best-effort: a failed copy just means a fresh day, never a crash.
+  }
+}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -291,6 +309,11 @@ function selfTest() {
 
 async function main() {
   const args = process.argv.slice(2);
+  if (args.includes("--version")) {
+    console.log(JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version);
+    return;
+  }
+  migrateLegacyState();
   if (args.includes("--self-test")) {
     selfTest();
     return;
@@ -331,7 +354,7 @@ async function main() {
   const dryRun = args.includes("--dry-run");
   const hasRun = args.includes("--run");
   if (!dryRun && !hasRun) {
-    console.log("usage: huohua.js --dry-run | --run | --self-test | --mark-sent NAME... [--only NAME]");
+    console.log("usage: huohua.js --dry-run | --run | --self-test | --version | --mark-sent NAME... [--only NAME]");
     process.exitCode = 64;
     return;
   }

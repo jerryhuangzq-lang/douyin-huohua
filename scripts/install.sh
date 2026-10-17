@@ -4,6 +4,8 @@ set -euo pipefail
 SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 # Override with HUOHUA_LABEL=com.example.douyin-huohua; default is per-user.
 LABEL="${HUOHUA_LABEL:-com.$(id -un).douyin-huohua}"
+# State/log dir; written into the plist so manual and scheduled runs share it.
+HUOHUA_HOME="${HUOHUA_HOME:-$HOME/.douyin-huohua}"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 NODE_BIN="$(command -v node || true)"
 
@@ -19,7 +21,7 @@ if [[ -z "$NODE_BIN" ]]; then
   exit 1
 fi
 
-mkdir -p "$HOME/Library/LaunchAgents" "$SKILL_DIR/state"
+mkdir -p "$HOME/Library/LaunchAgents" "$HUOHUA_HOME"
 
 cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -36,6 +38,11 @@ cat > "$PLIST" <<EOF
   </array>
   <key>WorkingDirectory</key>
   <string>$SKILL_DIR</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HUOHUA_HOME</key>
+    <string>$HUOHUA_HOME</string>
+  </dict>
   <key>StartCalendarInterval</key>
   <dict>
     <key>Hour</key>
@@ -44,9 +51,9 @@ cat > "$PLIST" <<EOF
     <integer>37</integer>
   </dict>
   <key>StandardOutPath</key>
-  <string>$SKILL_DIR/state/launchd.out.log</string>
+  <string>$HUOHUA_HOME/launchd.out.log</string>
   <key>StandardErrorPath</key>
-  <string>$SKILL_DIR/state/launchd.err.log</string>
+  <string>$HUOHUA_HOME/launchd.err.log</string>
   <key>RunAtLoad</key>
   <false/>
 </dict>
