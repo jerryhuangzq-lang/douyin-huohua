@@ -35,6 +35,9 @@ node scripts/huohua.js --run --only "是啊R^ose"
 # Recover from a false-negative verification: mark this run's failures as sent
 node scripts/huohua.js --mark-failed
 
+# Mark given chats as already sent today (so they are skipped), without sending
+node scripts/huohua.js --mark-sent "好友名" "另一个好友"
+
 # Install / remove the daily 12:37 launchd job
 # launchd label defaults to com.<user>.douyin-huohua; override with HUOHUA_LABEL=...
 bash scripts/install.sh
@@ -58,8 +61,8 @@ The launchd job runs outside the sandbox and does not need Claude running.
 3. Scroll the whole conversation list (it is virtualised; only ~12 rows are mounted at a time) and classify every chat by flame icon and `重燃中` text.
 4. Focus the editor, open the emoji panel (`.messageMsgInputiconAction`), and click the sticker image (`.emojiEmojiItemimgBox`) whose description is `续火花`. Clicking the outer item does nothing; never use Enter to send.
 5. Success = the sticker image click returned without error. Do not verify by flame color or message count: the flame stays gray until the other side replies, and the virtualised message list lags behind. A click counts as sent.
-6. Done chats are recorded in `state/last-run.json` keyed by date, so re-running the same day sends nothing twice.
-7. Results go to `state/huohua.log` and a macOS notification; exit 1 if any chat failed, 2 on Chrome/login failure.
+6. Done chats are recorded in `~/.douyin-huohua/last-run.json` keyed by date, so re-running the same day sends nothing twice.
+7. Results go to `~/.douyin-huohua/huohua.log` and a macOS notification; exit 1 if any chat failed, 2 on Chrome/login failure.
 
 ## Troubleshooting
 
