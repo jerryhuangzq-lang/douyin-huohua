@@ -1,0 +1,58 @@
+#!/bin/bash
+set -euo pipefail
+
+SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+LABEL="com.jerryhuang.douyin-huohua"
+PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+NODE_BIN="$(command -v node)"
+
+if [[ "${1:-}" == "--uninstall" ]]; then
+  launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
+  rm -f "$PLIST"
+  echo "Uninstalled $LABEL"
+  exit 0
+fi
+
+if [[ -z "$NODE_BIN" ]]; then
+  echo "node not found in PATH" >&2
+  exit 1
+fi
+
+mkdir -p "$HOME/Library/LaunchAgents" "$SKILL_DIR/state"
+
+cat > "$PLIST" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>$LABEL</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$NODE_BIN</string>
+    <string>$SKILL_DIR/scripts/huohua.js</string>
+    <string>--run</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>$SKILL_DIR</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>12</integer>
+    <key>Minute</key>
+    <integer>37</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>$SKILL_DIR/state/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>$SKILL_DIR/state/launchd.err.log</string>
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>
+EOF
+
+launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$PLIST"
+echo "Installed $LABEL (daily 12:37)"
+echo "Run now: launchctl kickstart -k gui/$(id -u)/$LABEL"
