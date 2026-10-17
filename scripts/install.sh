@@ -5,7 +5,7 @@ SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 # Override with HUOHUA_LABEL=com.example.douyin-huohua; default is per-user.
 LABEL="${HUOHUA_LABEL:-com.$(id -un).douyin-huohua}"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
-NODE_BIN="$(command -v node)"
+NODE_BIN="$(command -v node || true)"
 
 if [[ "${1:-}" == "--uninstall" ]]; then
   launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true

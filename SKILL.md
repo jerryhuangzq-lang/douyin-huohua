@@ -17,26 +17,28 @@ Drive the user's logged-in Chrome (web Douyin) to send the built-in `续火花` 
 
 ## Commands
 
+Run these from the directory containing this `SKILL.md` (the repo root or the installed skill dir).
+
 ```bash
 # Self-check pure classification logic (safe, no Chrome)
-node ~/.claude/skills/douyin-huohua/scripts/huohua.js --self-test
+node scripts/huohua.js --self-test
 
 # List targets, send nothing
-node ~/.claude/skills/douyin-huohua/scripts/huohua.js --dry-run
+node scripts/huohua.js --dry-run
 
 # Send now (asks no confirmation; only run when user wants messages sent)
-node ~/.claude/skills/douyin-huohua/scripts/huohua.js --run
+node scripts/huohua.js --run
 
 # Send to one chat only (exact name first, substring fallback)
-node ~/.claude/skills/douyin-huohua/scripts/huohua.js --run --only "是啊R^ose"
+node scripts/huohua.js --run --only "是啊R^ose"
 
 # Recover from a false-negative verification: mark this run's failures as sent
-node ~/.claude/skills/douyin-huohua/scripts/huohua.js --mark-failed
+node scripts/huohua.js --mark-failed
 
 # Install / remove the daily 12:37 launchd job
 # launchd label defaults to com.<user>.douyin-huohua; override with HUOHUA_LABEL=...
-bash ~/.claude/skills/douyin-huohua/scripts/install.sh
-bash ~/.claude/skills/douyin-huohua/scripts/install.sh --uninstall
+bash scripts/install.sh
+bash scripts/install.sh --uninstall
 ```
 
 ## Important: sandbox
@@ -44,7 +46,7 @@ bash ~/.claude/skills/douyin-huohua/scripts/install.sh --uninstall
 The in-session Bash sandbox blocks `osascript`, so `--dry-run` / `--run` fail there with `Operation not permitted` or AppleScript errors. Run them in the user's own shell instead: tell the user to type
 
 ```
-! node ~/.claude/skills/douyin-huohua/scripts/huohua.js --dry-run
+! node scripts/huohua.js --dry-run
 ```
 
 The launchd job runs outside the sandbox and does not need Claude running.

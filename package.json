@@ -28,6 +28,5 @@
   "os": ["darwin"],
   "engines": {
     "node": ">=16"
-  },
-  "private": true
+  }
 }

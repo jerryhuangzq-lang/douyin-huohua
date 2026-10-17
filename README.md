@@ -14,9 +14,17 @@
 
 This script **automatically sends messages to other people on your behalf**. Such automation may violate Douyin's (ByteDance's) Terms of Service and could lead to warnings, restrictions or a ban on your account. Use at your own risk. This is an unofficial project, not affiliated with Douyin/ByteDance, intended for personal use only — not for spam, marketing or bulk/commercial use. Provided "as is", without warranty of any kind.
 
+## 安装 / Install
+
+```bash
+git clone https://github.com/jerryhuangzq-lang/douyin-huohua.git
+cd douyin-huohua
+node scripts/huohua.js --self-test   # 确认环境正常，不碰 Chrome
+```
+
 ## 使用 / Usage
 
-需要 macOS、Google Chrome（已登录抖音网页版）、Node.js。
+需要 macOS、Google Chrome（已登录抖音网页版）、Node.js。以下命令在仓库目录执行。
 
 ```bash
 node scripts/huohua.js --self-test   # 纯逻辑自检，不碰 Chrome
