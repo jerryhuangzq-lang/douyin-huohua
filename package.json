@@ -1,0 +1,32 @@
+{
+  "name": "douyin-huohua",
+  "version": "0.1.0",
+  "description": "Automatically send the 续火花 sticker in Douyin web chats via logged-in Chrome (macOS).",
+  "author": "jerryhuangzq-lang",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jerryhuangzq-lang/douyin-huohua.git"
+  },
+  "homepage": "https://github.com/jerryhuangzq-lang/douyin-huohua#readme",
+  "bin": {
+    "douyin-huohua": "scripts/huohua.js"
+  },
+  "files": [
+    "SKILL.md",
+    "README.md",
+    "config.json",
+    "scripts/"
+  ],
+  "scripts": {
+    "self-test": "node scripts/huohua.js --self-test",
+    "dry-run": "node scripts/huohua.js --dry-run",
+    "run": "node scripts/huohua.js --run",
+    "install-job": "bash scripts/install.sh",
+    "uninstall-job": "bash scripts/install.sh --uninstall"
+  },
+  "os": ["darwin"],
+  "engines": {
+    "node": ">=16"
+  },
+  "private": true
+}
