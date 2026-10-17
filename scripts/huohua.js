@@ -313,10 +313,13 @@ async function main() {
     console.log(JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version);
     return;
   }
-  migrateLegacyState();
   if (args.includes("--self-test")) {
     selfTest();
     return;
+  }
+  // Only commands that touch state migrate it; --version/--self-test/usage do no state I/O.
+  if (["--mark-failed", "--mark-sent", "--dry-run", "--run"].some((f) => args.includes(f))) {
+    migrateLegacyState();
   }
 
   if (args.includes("--mark-failed")) {
