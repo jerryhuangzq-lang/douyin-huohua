@@ -35,6 +35,7 @@ cat > "$PLIST" <<EOF
     <string>$NODE_BIN</string>
     <string>$SKILL_DIR/scripts/huohua.js</string>
     <string>--run</string>
+    <string>--scheduled</string>
   </array>
   <key>WorkingDirectory</key>
   <string>$SKILL_DIR</string>
@@ -43,24 +44,19 @@ cat > "$PLIST" <<EOF
     <key>HUOHUA_HOME</key>
     <string>$HUOHUA_HOME</string>
   </dict>
-  <key>StartCalendarInterval</key>
-  <dict>
-    <key>Hour</key>
-    <integer>12</integer>
-    <key>Minute</key>
-    <integer>37</integer>
-  </dict>
+  <key>StartInterval</key>
+  <integer>600</integer>
   <key>StandardOutPath</key>
   <string>$HUOHUA_HOME/launchd.out.log</string>
   <key>StandardErrorPath</key>
   <string>$HUOHUA_HOME/launchd.err.log</string>
   <key>RunAtLoad</key>
-  <false/>
+  <true/>
 </dict>
 </plist>
 EOF
 
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST"
-echo "Installed $LABEL (daily 12:37)"
+echo "Installed $LABEL (checks every 10 min while awake; one successful run per day)"
 echo "Run now: launchctl kickstart -k gui/$(id -u)/$LABEL"

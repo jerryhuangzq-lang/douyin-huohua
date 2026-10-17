@@ -41,11 +41,11 @@ node scripts/huohua.js --version
 ## 定时任务 / Scheduled job
 
 ```bash
-bash scripts/install.sh              # 每天 12:37 的 launchd 任务
+bash scripts/install.sh              # launchd 任务：醒着时每 10 分钟检查，每天最多成功跑一次
 bash scripts/install.sh --uninstall
 ```
 
-launchd 标签默认为 `com.<你的用户名>.douyin-huohua`，可用环境变量覆盖（安装和卸载时要使用同一个值）：
+机器睡眠期间错过的检查会在唤醒时合并触发；当天成功后不再实际执行，失败则以 1 小时冷却重试。launchd 标签默认为 `com.<你的用户名>.douyin-huohua`，可用环境变量覆盖（安装和卸载时要使用同一个值）：
 
 ```bash
 HUOHUA_LABEL=com.example.douyin-huohua bash scripts/install.sh

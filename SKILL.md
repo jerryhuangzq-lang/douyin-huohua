@@ -38,7 +38,7 @@ node scripts/huohua.js --mark-failed
 # Mark given chats as already sent today (so they are skipped), without sending
 node scripts/huohua.js --mark-sent "好友名" "另一个好友"
 
-# Install / remove the daily 12:37 launchd job
+# Install / remove the launchd job (checks every 10 min while awake; runs at most once per day)
 # launchd label defaults to com.<user>.douyin-huohua; override with HUOHUA_LABEL=...
 bash scripts/install.sh
 bash scripts/install.sh --uninstall
@@ -69,4 +69,4 @@ The launchd job runs outside the sandbox and does not need Claude running.
 - `0 targets` while the list clearly shows gray flames → Douyin changed its DOM; update `config.json` selectors.
 - `not authorized to send Apple events` / `-1743` → grant Automation access to `osascript` or the launcher in System Settings → Privacy & Security → Automation.
 - Not logged in → open Douyin in Chrome and log in; the skill never handles credentials.
-- Mac asleep at 12:37 → launchd runs the missed job on wake.
+- Mac asleep → launchd coalesces missed intervals and fires once on wake; if the first attempt fails, a later 10-min tick retries (1 h cooldown between failed attempts).

@@ -15,6 +15,10 @@ const STATE_FILE = path.join(STATE_DIR, "last-run.json");
 const LOG_FILE = path.join(STATE_DIR, "huohua.log");
 const AS_SCRIPT = path.join(__dirname, "chrome-js.applescript");
 
+// Module-level so the fatal handler can record the failure after a throw.
+let activeState = null;
+let activeRun = false;
+
 // One-time copy of the pre-0.2 in-package state; afterwards only STATE_DIR is used.
 function migrateLegacyState() {
   try {
@@ -186,12 +190,18 @@ async function ensureReady() {
     await sleep(5000);
   }
 
-  const entry = await waitFor(
-    `(function(){return document.querySelector(${JSON.stringify(S.imEntry)})?'YES':'NO'})()`,
-    (v) => v === "YES",
-    25000,
-    1000
-  );
+  const imEntry = `(function(){return document.querySelector(${JSON.stringify(S.imEntry)})?'YES':'NO'})()`;
+  let entry = await waitFor(imEntry, (v) => v === "YES", 20000, 1000);
+  if (!entry) {
+    // A cold Chrome start or a discarded tab can take far longer than 20 s; one
+    // reload wakes it instead of failing the whole day.
+    try {
+      runJs("(function(){location.reload();return 'OK'})()");
+    } catch (_) {
+      // No douyin tab (yet); the second wait below covers the cold-start path.
+    }
+    entry = await waitFor(imEntry, (v) => v === "YES", 60000, 1500);
+  }
   if (!entry) throw new Error("douyin page not loaded or not logged in (no im-entry)");
 
   runJs(`(function(){${clickHelper}
@@ -206,7 +216,7 @@ async function ensureReady() {
   const ready = await waitFor(
     `(function(){return document.querySelectorAll(${JSON.stringify(S.conversationItem)}).length>0?'YES':'NO'})()`,
     (v) => v === "YES",
-    12000,
+    30000,
     700
   );
   if (!ready) throw new Error("private message list is empty (not logged in or failed to load)");
@@ -365,6 +375,17 @@ async function main() {
   const onlyIdx = args.indexOf("--only");
   const only = onlyIdx >= 0 ? args[onlyIdx + 1] : (args.find((a) => a.startsWith("--only=")) || "").split("=")[1] || null;
 
+  const state = loadState();
+  activeState = state;
+
+  // launchd fires this every 10 min (and on wake); do real work at most once a day.
+  // Routine skips stay out of the log: 144 silent ticks a day would drown the results.
+  if (hasRun && !dryRun && args.includes("--scheduled")) {
+    if (state.done) return;
+    if (state.failedAt && Date.now() - Date.parse(state.failedAt) < 60 * 60 * 1000) return;
+  }
+  activeRun = !dryRun;
+
   const items = await ensureReady();
   let targets = items
     .map((item) => ({ ...item, ...classify(item) }))
@@ -392,10 +413,8 @@ async function main() {
     return;
   }
 
-  const state = loadState();
   const results = [];
   log("run start");
-
   for (const target of targets) {
     const key = keyOf(target);
     if (isSent(state, target.name)) {
@@ -425,6 +444,14 @@ async function main() {
   const sent = results.filter((r) => r.ok && !r.skipped).length;
   const skipped = results.filter((r) => r.skipped).length;
   const failed = results.filter((r) => !r.ok);
+
+  if (failed.length === 0) {
+    state.done = true;
+    delete state.failedAt;
+  } else {
+    state.failedAt = new Date().toISOString();
+  }
+  saveState(state);
   const summary = `续火花: sent ${sent}, skipped ${skipped}, failed ${failed.length}`;
   console.log(summary);
   for (const f of failed) console.log(`  FAIL ${f.name}: ${f.reason}`);
@@ -433,6 +460,10 @@ async function main() {
 }
 
 main().catch((err) => {
+  if (activeRun && activeState) {
+    activeState.failedAt = new Date().toISOString();
+    saveState(activeState);
+  }
   log(`fatal: ${err.message}`);
   notify(`续火花失败: ${err.message}`);
   console.error(`fatal: ${err.message}`);
