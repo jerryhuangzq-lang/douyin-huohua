@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Automatically send the 续火花 sticker in Douyin web chats via logged-in Chrome (macOS).",
   "author": "jerryhuangzq-lang",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jerryhuangzq-lang/douyin-huohua.git"
