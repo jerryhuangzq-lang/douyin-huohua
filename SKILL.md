@@ -5,6 +5,8 @@ description: 抖音网页版自动续火花。检测私信列表里灰色火花�
 
 # Douyin 自动续火花
 
+> ⚠️ 本 skill 会自动向其他用户发送消息，可能违反抖音使用条款，账号风险自负；详见 README.md「免责声明」。Only send when the user explicitly wants it.
+
 Drive the user's logged-in Chrome (web Douyin) to send the built-in `续火花` sticker to every chat that needs it today.
 
 ## What counts as "needs it"
@@ -32,6 +34,7 @@ node ~/.claude/skills/douyin-huohua/scripts/huohua.js --run --only "是啊R^ose"
 node ~/.claude/skills/douyin-huohua/scripts/huohua.js --mark-failed
 
 # Install / remove the daily 12:37 launchd job
+# launchd label defaults to com.<user>.douyin-huohua; override with HUOHUA_LABEL=...
 bash ~/.claude/skills/douyin-huohua/scripts/install.sh
 bash ~/.claude/skills/douyin-huohua/scripts/install.sh --uninstall
 ```

@@ -2,7 +2,8 @@
 set -euo pipefail
 
 SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-LABEL="com.jerryhuang.douyin-huohua"
+# Override with HUOHUA_LABEL=com.example.douyin-huohua; default is per-user.
+LABEL="${HUOHUA_LABEL:-com.$(id -un).douyin-huohua}"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 NODE_BIN="$(command -v node)"
 
