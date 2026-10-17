@@ -8,6 +8,7 @@
     "imEntry": "[data-e2e=\"im-entry\"]",
     "imDialog": "[data-e2e=\"im-dialog\"]",
     "conversationItem": "[data-e2e=\"conversation-item\"]",
+    "nameText": ".conversationConversationItemtitle",
     "streakIcon": "img.commonStreakicon",
     "editor": "[data-e2e=\"msg-input\"] [contenteditable=\"true\"]",
     "emojiButton": ".messageMsgInputiconAction",

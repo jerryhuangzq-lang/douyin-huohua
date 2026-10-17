@@ -75,7 +75,12 @@ function keyOf(item) {
 }
 
 function isSent(state, name) {
-  return Object.keys(state.sent).some((k) => k.split("|")[0] === name);
+  const n = String(name).trim();
+  return Object.keys(state.sent).some((k) => {
+    const key = k.split("|")[0];
+    // Older entries stored the whole collapsed row ("name streak time preview").
+    return key === n || key.startsWith(n + " ");
+  });
 }
 
 function today() {
@@ -139,9 +144,13 @@ function jsStartScan() {
       [...document.querySelectorAll(S.conversationItem)].forEach(it=>{
         const icon=it.querySelector(S.streakIcon);
         const av=it.querySelector('img:not(.commonStreakicon)');
+        const nm=it.querySelector(S.nameText);
         const lines=(it.innerText||'').split('\\n').map(s=>s.trim()).filter(Boolean);
-        const key=(lines[0]||'')+'|'+(av?av.src:'');
-        window.__huohuaScan.items[key]={name:lines[0]||'',text:it.innerText||'',preview:lines[lines.length-1]||'',iconSrc:icon?icon.src:'',avatarSrc:av?av.src:''};
+        // innerText's first line can collapse name+streak+time into one string
+        // while the drawer is mid-animation; the title node is stable.
+        const name=((nm?nm.textContent:lines[0])||'').trim();
+        const key=name+'|'+(av?av.src:'');
+        window.__huohuaScan.items[key]={name,text:it.innerText||'',preview:lines[lines.length-1]||'',iconSrc:icon?icon.src:'',avatarSrc:av?av.src:''};
       });
     };
     sc.scrollTop=0;
@@ -237,8 +246,10 @@ async function sendTo(target) {
       const items=[...document.querySelectorAll(S.conversationItem)];
       const it=items.find(x=>{
         const av=x.querySelector('img:not(.commonStreakicon)');
+        const nm=x.querySelector(S.nameText);
         const lines=(x.innerText||'').split('\\n').map(s=>s.trim()).filter(Boolean);
-        return (lines[0]||'')===NAME && (av?av.src:'').includes(AV);
+        const name=((nm?nm.textContent:lines[0])||'').trim();
+        return name===NAME && (av?av.src:'').includes(AV);
       });
       if(!it)return 'NOT_FOUND';
       it.scrollIntoView({block:'center'});
@@ -314,7 +325,12 @@ function selfTest() {
       if (got[k] !== v) throw new Error(`self-test failed: ${JSON.stringify(item)} expected ${k}=${v}, got ${got[k]}`);
     }
   }
-  console.log(`self-test passed (${cases.length} cases)`);
+  const st = { sent: { "catbb|u": 1, "adee_7 🎀 何蓝天 5 天后消失|u": 2, "Yuy_1res 重燃中 1/3|u": 3 } };
+  if (!isSent(st, "catbb")) throw new Error("self-test failed: exact name not matched");
+  if (!isSent(st, "adee_7 🎀 何蓝天")) throw new Error("self-test failed: legacy collapsed key not matched");
+  if (!isSent(st, "Yuy_1res")) throw new Error("self-test failed: legacy key with same prefix not matched");
+  if (isSent(st, "Yuy")) throw new Error("self-test failed: prefix collision");
+  console.log(`self-test passed (${cases.length} classification + 4 state cases)`);
 }
 
 async function main() {
