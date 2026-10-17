@@ -242,33 +242,50 @@ async function ensureReady() {
   return scanAll();
 }
 
-async function sendTo(target) {
+function jsClickTarget(target) {
+  return `(function(){${clickHelper}
+    const S=${JSON.stringify(S)};
+    const NAME=${JSON.stringify(target.name)};
+    const AV=${JSON.stringify(target.avatarSrc)};
+    const items=[...document.querySelectorAll(S.conversationItem)];
+    const it=items.find(x=>{
+      const av=x.querySelector('img:not(.commonStreakicon)');
+      const nm=x.querySelector(S.nameText);
+      const lines=(x.innerText||'').split('\\n').map(s=>s.trim()).filter(Boolean);
+      const name=((nm?nm.textContent:lines[0])||'').trim();
+      return name===NAME && (av?av.src:'').includes(AV);
+    });
+    if(!it)return 'NOT_FOUND';
+    it.scrollIntoView({block:'center'});
+    click(it);
+    return 'CLICKED';
+  })()`;
+}
+
+async function openChat(target) {
   runJs(jsSetSearch(target.name));
   await sleep(800);
 
-  let clicked = "NOT_FOUND";
   for (let attempt = 0; attempt < 3; attempt++) {
-    clicked = runJs(`(function(){${clickHelper}
-      const S=${JSON.stringify(S)};
-      const NAME=${JSON.stringify(target.name)};
-      const AV=${JSON.stringify(target.avatarSrc)};
-      const items=[...document.querySelectorAll(S.conversationItem)];
-      const it=items.find(x=>{
-        const av=x.querySelector('img:not(.commonStreakicon)');
-        const nm=x.querySelector(S.nameText);
-        const lines=(x.innerText||'').split('\\n').map(s=>s.trim()).filter(Boolean);
-        const name=((nm?nm.textContent:lines[0])||'').trim();
-        return name===NAME && (av?av.src:'').includes(AV);
-      });
-      if(!it)return 'NOT_FOUND';
-      it.scrollIntoView({block:'center'});
-      click(it);
-      return 'CLICKED';
-    })()`);
-    if (clicked === "CLICKED") break;
+    if (runJs(jsClickTarget(target)) === "CLICKED") return true;
     await sleep(600);
   }
-  if (clicked !== "CLICKED") return { ok: false, reason: `open chat: ${clicked}` };
+
+  // The IM search does not always filter (emoji-heavy nicknames), and the
+  // virtualised list mounts only ~13 rows; walk the whole list from the top.
+  runJs(`(function(){const S=${JSON.stringify(S)};const it=document.querySelector(S.conversationItem);let a=it;while(a&&a!==document.body){if(a.scrollHeight>a.clientHeight+20)break;a=a.parentElement}if(a)a.scrollTop=0;return 'OK'})()`);
+  await sleep(600);
+  const scrollStep = `(function(){const S=${JSON.stringify(S)};const first=document.querySelector(S.conversationItem);if(!first)return 'NO_ITEM';let sc=first;while(sc&&sc!==document.body){if(sc.scrollHeight>sc.clientHeight+20)break;sc=sc.parentElement}if(!sc)return 'NO_SCROLLER';sc.scrollTop=sc.scrollTop+(sc.clientHeight||600);return sc.scrollTop+sc.clientHeight>=sc.scrollHeight-2?'BOTTOM':'MOVED'})()`;
+  for (let i = 0; i < 40; i++) {
+    if (runJs(jsClickTarget(target)) === "CLICKED") return true;
+    if (runJs(scrollStep) === "BOTTOM") break;
+    await sleep(500);
+  }
+  return false;
+}
+
+async function sendTo(target) {
+  if (!(await openChat(target))) return { ok: false, reason: "open chat: NOT_FOUND" };
 
   const editorReady = await waitFor(
     `(function(){return document.querySelector(${JSON.stringify(S.editor)})?'YES':'NO'})()`,
