@@ -83,9 +83,18 @@ function isSent(state, name) {
   });
 }
 
+// Douyin streak days reset on Beijing time, not on the laptop's timezone.
+function dayKey(d = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
 function today() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return dayKey();
 }
 
 function loadState() {
@@ -330,7 +339,9 @@ function selfTest() {
   if (!isSent(st, "adee_7 🎀 何蓝天")) throw new Error("self-test failed: legacy collapsed key not matched");
   if (!isSent(st, "Yuy_1res")) throw new Error("self-test failed: legacy key with same prefix not matched");
   if (isSent(st, "Yuy")) throw new Error("self-test failed: prefix collision");
-  console.log(`self-test passed (${cases.length} classification + 4 state cases)`);
+  if (dayKey(new Date("2026-10-17T15:59:00Z")) !== "2026-10-17") throw new Error("self-test failed: Beijing day boundary (before midnight)");
+  if (dayKey(new Date("2026-10-17T16:00:00Z")) !== "2026-10-18") throw new Error("self-test failed: Beijing day boundary (midnight)");
+  console.log(`self-test passed (${cases.length} classification + 4 state + 2 day-key cases)`);
 }
 
 async function main() {
