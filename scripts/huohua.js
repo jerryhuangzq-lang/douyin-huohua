@@ -167,6 +167,8 @@ function jsStartScan() {
         // while the drawer is mid-animation; the title node is stable.
         const name=((nm?nm.textContent:lines[0])||'').trim();
         const key=name+'|'+(av?av.src:'');
+        const prev=window.__huohuaScan.items[key];
+        if(prev&&prev.iconSrc&&!icon)return;
         window.__huohuaScan.items[key]={name,text:it.innerText||'',preview:lines[lines.length-1]||'',iconSrc:icon?icon.src:'',avatarSrc:av?av.src:''};
       });
     };
@@ -182,7 +184,7 @@ function jsStartScan() {
         window.__huohuaScan.done=true;
         clearInterval(id);
       }
-    },350);
+    },1500);
     return 'STARTED';
   })()`;
 }
@@ -194,7 +196,7 @@ async function scanAll() {
   const done = await waitFor(
     `(function(){return window.__huohuaScan&&window.__huohuaScan.done?'YES':'NO'})()`,
     (v) => v === "YES",
-    25000,
+    150000,
     500
   );
   if (!done) throw new Error("conversation list scan timed out");
