@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-18 - final report lists names
+
+- End of `--run` now prints the sent, already-sent-today (not re-sent) and failed chat names, not just counts.
+
 ## 2026-10-18 - fix missed streak chats (issue #1)
 
 - Scan interval 350 ms -> 1500 ms so async streak icons are rendered before a row is read.

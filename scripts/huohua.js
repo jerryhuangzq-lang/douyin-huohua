@@ -498,8 +498,10 @@ async function main() {
 
   runJs(jsSetSearch(""));
 
-  const sent = results.filter((r) => r.ok && !r.skipped).length;
-  const skipped = results.filter((r) => r.skipped).length;
+  const sentList = results.filter((r) => r.ok && !r.skipped);
+  const skippedList = results.filter((r) => r.skipped);
+  const sent = sentList.length;
+  const skipped = skippedList.length;
   const failed = results.filter((r) => !r.ok);
 
   if (failed.length === 0) {
@@ -511,6 +513,10 @@ async function main() {
   saveState(state);
   const summary = `续火花: sent ${sent}, skipped ${skipped}, failed ${failed.length}`;
   console.log(summary);
+  const names = (list) => (list.length ? list.map((r) => r.name).join("、") : "无");
+  console.log(`已发送 (${sent}): ${names(sentList)}`);
+  console.log(`未续火-今天已发过 (${skipped}): ${names(skippedList)}`);
+  console.log(`失败 (${failed.length}): ${failed.length ? "" : "无"}`);
   for (const f of failed) console.log(`  FAIL ${f.name}: ${f.reason}`);
   notify(summary);
   if (failed.length > 0) process.exitCode = 1;
