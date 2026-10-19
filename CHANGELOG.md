@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-19 - stop scanning once the page is old
+
+- After each page settles, the scan stops when every mounted row was last active more than 10 days ago (`OLD_DAYS`), then sending starts.
+- The age comes from the row's time label (`timeStr` selector in `config.json`) via `ageDays`: 刚刚, N分钟前, HH:MM, 昨天, 前天, 周X, MM/DD, YYYY/MM/DD. Unrecognised labels count as recent, so the scan never stops early on a label it cannot read.
+- `--self-test` covers 15 label cases.
+
+Result: dry-run scan 96 s -> about 20 s, 34 targets.
+
 ## 2026-10-19 - open chats through the search panel (issue #2)
 
 - Search uses only the longest letters/digits run of the name; symbols and emoji are dropped.

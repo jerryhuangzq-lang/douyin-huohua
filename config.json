@@ -10,6 +10,7 @@
     "conversationItem": "[data-e2e=\"conversation-item\"]",
     "nameText": ".conversationConversationItemtitle",
     "streakIcon": "img.commonStreakicon",
+    "timeStr": ".ConversationItemTagNextToTitletimeStr",
     "editor": "[data-e2e=\"msg-input\"] [contenteditable=\"true\"]",
     "emojiButton": ".messageMsgInputiconAction",
     "emojiPanel": ".componentsemojiemojiPanel",

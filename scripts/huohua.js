@@ -145,6 +145,33 @@ function jsSetSearch(text) {
   })()`;
 }
 
+// Stop scanning once a whole page of rows was last active more than this many days ago.
+const OLD_DAYS = 10;
+
+// Days since the last message from a row's time label ("刚刚", "28分钟前", "14:19",
+// "昨天 10:22", "周五", "07/17", "2025/10/26"); null when unrecognised.
+// Serialised into the page, so it must not reference anything outside itself.
+function ageDays(label, now = new Date()) {
+  const s = String(label || "").trim();
+  if (!s) return null;
+  if (s === "刚刚" || /秒前|分钟前|小时前/.test(s) || /^\d{1,2}:\d{2}$/.test(s)) return 0;
+  if (s.startsWith("昨天")) return 1;
+  if (s.startsWith("前天")) return 2;
+  const day = 86400000;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const week = s.match(/^(?:周|星期)([日一二三四五六])/);
+  if (week) return (today.getDay() - "日一二三四五六".indexOf(week[1]) + 7) % 7 || 7;
+  let m = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+  if (m) return Math.round((today - new Date(+m[1], m[2] - 1, +m[3])) / day);
+  m = s.match(/^(\d{1,2})[\/-](\d{1,2})/);
+  if (m) {
+    let d = new Date(today.getFullYear(), m[1] - 1, +m[2]);
+    if (d > today) d = new Date(today.getFullYear() - 1, m[1] - 1, +m[2]);
+    return Math.round((today - d) / day);
+  }
+  return null;
+}
+
 function jsStartScan() {
   return `(function(){${clickHelper}
     const S=${JSON.stringify(S)};
@@ -191,11 +218,21 @@ function jsStartScan() {
       }
       collect();
     };
+    const ageDays=${ageDays.toString()};
+    const allOld=()=>{
+      const its=[...document.querySelectorAll(S.conversationItem)];
+      return its.length>0&&its.every(it=>{
+        const t=it.querySelector(S.timeStr);
+        const a=ageDays(t?t.textContent:'');
+        return a!==null&&a>${OLD_DAYS};
+      });
+    };
     (async()=>{
       sc.scrollTop=0;
       await settle();
       let top=0;
       for(;;){
+        if(allOld())break;
         top+=sc.clientHeight||600;
         sc.scrollTop=top;
         await settle();
@@ -419,6 +456,12 @@ function selfTest() {
   if (isSent(st, "Yuy")) throw new Error("self-test failed: prefix collision");
   if (dayKey(new Date("2026-10-17T15:59:00Z")) !== "2026-10-17") throw new Error("self-test failed: Beijing day boundary (before midnight)");
   if (dayKey(new Date("2026-10-17T16:00:00Z")) !== "2026-10-18") throw new Error("self-test failed: Beijing day boundary (midnight)");
+  const now = new Date(2026, 9, 19, 12, 0); // Monday
+  const ages = [["刚刚", 0], ["28分钟前", 0], ["14:19", 0], ["昨天 10:22", 1], ["前天", 2], ["周日", 1], ["周五", 3], ["周二", 6], ["周一", 7], ["10/02", 17], ["07/17", 94], ["2025/10/26", 358], ["12/31", 292], ["", null], ["???", null]];
+  for (const [label, want] of ages) {
+    const got = ageDays(label, now);
+    if (got !== want) throw new Error(`self-test failed: ageDays(${JSON.stringify(label)}) expected ${want}, got ${got}`);
+  }
   const slot = {};
   if (!takeScheduledSlot(slot) || slot.done !== true) throw new Error("self-test failed: first scheduled run not allowed");
   if (takeScheduledSlot(slot)) throw new Error("self-test failed: second scheduled run allowed");
