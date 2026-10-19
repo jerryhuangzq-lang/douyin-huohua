@@ -10,4 +10,16 @@
 
 **Secondary.** A scheduled run claims the Beijing day (`state.done`) before it starts, so chats that failed with `open chat: NOT_FOUND` were not retried until the next day.
 
-**Open.** `猫坏` still fails with `open chat: NOT_FOUND` even through `--only`; name or avatar URL matching in `jsClickTarget` is the suspect.
+**Fixed** by the scan changes below (#2) and CHANGELOG 2026-10-19. `猫坏` stopped failing once chats are opened through the search panel.
+
+## #2 Chats not in the first page could not be opened (2026-10-19)
+
+**Symptom.** After the scan fix, 8-11 chats per run still failed with `open chat: NOT_FOUND`, including chats that exist (`4422`, `myz`). The old fallback walked the whole conversation list and was slow and flaky.
+
+**Root causes.**
+- Searching a name shows a search panel (`.SearchPanelgroupbox` groups 联系人 / 群聊), not conversation rows. The chat only opens by clicking the row's 发消息 button (`.SearchPanelitemchat_btn`); the old code looked for conversation rows and never found them.
+- The search panel does not appear while Chrome is in the background (`document.hasFocus()` is false). Setting the input value from a script then does nothing.
+- Names with symbols or emoji do not search reliably.
+- After opening a chat the drawer stays on the chat layer (`[data-stack-layer="chat"]`), so the next search started from the wrong screen.
+
+**Fix.** See CHANGELOG 2026-10-19.

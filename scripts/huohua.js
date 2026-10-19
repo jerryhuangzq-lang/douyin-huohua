@@ -172,26 +172,48 @@ function jsStartScan() {
         window.__huohuaScan.items[key]={name,text:it.innerText||'',preview:lines[lines.length-1]||'',iconSrc:icon?icon.src:'',avatarSrc:av?av.src:''};
       });
     };
-    sc.scrollTop=0;
-    collect();
-    let top=0;
-    const id=setInterval(()=>{
-      collect();
-      top+=sc.clientHeight||600;
-      sc.scrollTop=top;
-      if(sc.scrollTop+sc.clientHeight>=sc.scrollHeight-2){
+    const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+    // Streak icons render asynchronously after a row mounts: do not scroll until
+    // the mounted rows (names + icons) have been unchanged for two polls.
+    const sig=()=>[...document.querySelectorAll(S.conversationItem)].map(it=>{
+      const nm=it.querySelector(S.nameText);
+      const ic=it.querySelector(S.streakIcon);
+      return (nm?nm.textContent:'')+(ic?ic.src:'');
+    }).join('|');
+    const settle=async()=>{
+      await sleep(700);
+      let prev=sig(),same=0;
+      for(let i=0;i<12&&same<2;i++){
+        await sleep(350);
         collect();
-        window.__huohuaScan.done=true;
-        clearInterval(id);
+        const cur=sig();
+        if(cur===prev)same++;else{same=0;prev=cur;}
       }
-    },1500);
+      collect();
+    };
+    (async()=>{
+      sc.scrollTop=0;
+      await settle();
+      let top=0;
+      for(;;){
+        top+=sc.clientHeight||600;
+        sc.scrollTop=top;
+        await settle();
+        if(sc.scrollTop+sc.clientHeight>=sc.scrollHeight-2){
+          // The list lazy-loads older rows at the bottom; only finish once the height stops growing.
+          const h=sc.scrollHeight;
+          await sleep(1000);
+          if(sc.scrollHeight===h)break;
+        }
+      }
+      window.__huohuaScan.done=true;
+    })();
     return 'STARTED';
   })()`;
 }
 
 async function scanAll() {
-  runJs(jsSetSearch(""));
-  await sleep(500);
+  await returnToList();
   runJs(jsStartScan());
   const done = await waitFor(
     `(function(){return window.__huohuaScan&&window.__huohuaScan.done?'YES':'NO'})()`,
@@ -254,47 +276,76 @@ async function ensureReady() {
 
 function jsClickTarget(target) {
   return `(function(){${clickHelper}
-    const S=${JSON.stringify(S)};
     const NAME=${JSON.stringify(target.name)};
-    const AV=${JSON.stringify(target.avatarSrc)};
-    const items=[...document.querySelectorAll(S.conversationItem)];
-    const it=items.find(x=>{
-      const av=x.querySelector('img:not(.commonStreakicon)');
-      const nm=x.querySelector(S.nameText);
-      const lines=(x.innerText||'').split('\\n').map(s=>s.trim()).filter(Boolean);
-      const name=((nm?nm.textContent:lines[0])||'').trim();
-      return name===NAME && (av?av.src:'').includes(AV);
-    });
-    if(!it)return 'NOT_FOUND';
-    it.scrollIntoView({block:'center'});
-    click(it);
+    const norm=s=>(s||'').replace(/[^\\p{L}\\p{N}]/gu,'').toLowerCase();
+    // Search results are a 联系人 group and a 群聊 group; every row has a 发消息
+    // button that opens the chat. Only the contact whose name matches counts.
+    const group=[...document.querySelectorAll('.SearchPanelgroupbox')].find(g=>((g.querySelector('.SearchPanelgrouptitle')||{}).textContent||'').trim()==='联系人');
+    if(!group)return 'NOT_FOUND';
+    const rows=[...group.querySelectorAll('.SearchPanelitembox')];
+    const titleOf=r=>((r.querySelector('.SearchPanelitemtitle')||{}).textContent||'').trim();
+    const row=rows.find(r=>titleOf(r)===NAME)||rows.find(r=>norm(NAME)!==''&&norm(titleOf(r))===norm(NAME));
+    if(!row)return 'NOT_FOUND';
+    const btn=row.querySelector('.SearchPanelitemchat_btn');
+    if(!btn)return 'NOT_FOUND';
+    click(btn);
     return 'CLICKED';
   })()`;
 }
 
+// Symbols and emoji break the IM search: search the longest letters/digits run only.
+function searchKey(name) {
+  const parts = String(name).match(/[\p{L}\p{N}]+/gu) || [];
+  return parts.reduce((best, p) => (p.length > best.length ? p : best), "") || String(name);
+}
+
+// The IM search only reacts while the page has focus; a background Chrome shows no results.
+async function ensureFocus() {
+  if (runJs("(function(){return document.hasFocus()?'Y':'N'})()") === "Y") return;
+  execFileSync("osascript", ["-e", 'tell application "Google Chrome" to activate']);
+  await sleep(800);
+}
+
 async function openChat(target) {
-  runJs(jsSetSearch(target.name));
+  await ensureFocus();
+  runJs(jsSetSearch(searchKey(target.name)));
+  await sleep(300);
+  runJs(`(function(){${clickHelper}const i=[...document.querySelectorAll('input')].find(x=>x.placeholder==='搜索');if(!i)return 'NO_SEARCH';click(i);i.focus();return 'OK'})()`);
   await sleep(800);
 
-  for (let attempt = 0; attempt < 3; attempt++) {
+  // Only the first page of search results is checked; no scrolling on a miss.
+  for (let attempt = 0; attempt < 5; attempt++) {
     if (runJs(jsClickTarget(target)) === "CLICKED") return true;
     await sleep(600);
-  }
-
-  // The IM search does not always filter (emoji-heavy nicknames), and the
-  // virtualised list mounts only ~13 rows; walk the whole list from the top.
-  runJs(`(function(){const S=${JSON.stringify(S)};const it=document.querySelector(S.conversationItem);let a=it;while(a&&a!==document.body){if(a.scrollHeight>a.clientHeight+20)break;a=a.parentElement}if(a)a.scrollTop=0;return 'OK'})()`);
-  await sleep(600);
-  const scrollStep = `(function(){const S=${JSON.stringify(S)};const first=document.querySelector(S.conversationItem);if(!first)return 'NO_ITEM';let sc=first;while(sc&&sc!==document.body){if(sc.scrollHeight>sc.clientHeight+20)break;sc=sc.parentElement}if(!sc)return 'NO_SCROLLER';sc.scrollTop=sc.scrollTop+(sc.clientHeight||600);return sc.scrollTop+sc.clientHeight>=sc.scrollHeight-2?'BOTTOM':'MOVED'})()`;
-  for (let i = 0; i < 40; i++) {
-    if (runJs(jsClickTarget(target)) === "CLICKED") return true;
-    if (runJs(scrollStep) === "BOTTOM") break;
-    await sleep(500);
   }
   return false;
 }
 
+// Leave the chat and the search panel so the next target starts from the message list.
+async function returnToList() {
+  const clickOne = (selector) =>
+    `(function(){${clickHelper}const e=document.querySelector(${JSON.stringify(selector)});if(e)click(e);return e?'CLICKED':'NONE'})()`;
+  try {
+    runJs(clickOne('[data-stack-layer="chat"] .StackLayoutStackTitleBarbackBtn'));
+    await sleep(500);
+    runJs(clickOne(".searchSearchInputsearch_cancel"));
+    await sleep(300);
+    runJs(jsSetSearch(""));
+  } catch (_) {
+    // Next openChat sets the search text again; a failed reset is not fatal.
+  }
+  await sleep(500);
+}
+
 async function sendTo(target) {
+  try {
+    return await sendToInner(target);
+  } finally {
+    await returnToList();
+  }
+}
+
+async function sendToInner(target) {
   if (!(await openChat(target))) return { ok: false, reason: "open chat: NOT_FOUND" };
 
   const editorReady = await waitFor(
